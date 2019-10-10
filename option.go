@@ -11,9 +11,9 @@ type runConfig struct {
 }
 
 var defaultConfig = runConfig{
-	&exponentialBackoff{
-		Initial:    10 * time.Millisecond,
-		Multiplier: 2,
-		Max:        10 * time.Second,
+	&ExponentialBackoff{
+		Initial:     10 * time.Millisecond,
+		Multiplier:  2,
+		MaxInterval: 10 * time.Second,
 	},
 }

@@ -10,21 +10,26 @@ type Backoff interface {
 	Interval(err error, n int) (time.Duration, bool)
 }
 
-type exponentialBackoff struct {
-	Initial    time.Duration
-	Multiplier float64
-	Max        time.Duration
+type ExponentialBackoff struct {
+	Initial     time.Duration
+	Multiplier  float64
+	MaxInterval time.Duration
+	MaxRetry    int
 
 	mu sync.Mutex
 	r  *rand.Rand
 }
 
-func (e *exponentialBackoff) Interval(err error, n int) (time.Duration, bool) {
+func (e *ExponentialBackoff) Interval(err error, n int) (time.Duration, bool) {
+	if e.MaxRetry > 0 && n > e.MaxRetry {
+		return 0, false
+	}
+
 	d := e.Initial
 	for i := 0; i < n; i++ {
 		d = time.Duration(float64(d) * e.Multiplier)
-		if d >= e.Max {
-			d = e.Max
+		if d >= e.MaxInterval {
+			d = e.MaxInterval
 			break
 		}
 	}
