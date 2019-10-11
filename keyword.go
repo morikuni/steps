@@ -11,9 +11,16 @@ const (
 
 type reservedResult string
 
-var _ Result = reservedResult(0)
+var _ interface {
+	Result
+	Matcher
+} = reservedResult(0)
 
 func (reservedResult) ComparableResult() {}
+
+func (rr reservedResult) Match(r Result, _ error) bool {
+	return rr == r
+}
 
 type reservedState string
 

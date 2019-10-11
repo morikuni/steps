@@ -60,8 +60,7 @@ func runStep(ctx StepContext, s Step) (Result, error) {
 	}
 
 	for {
-		ctx.NumRetry = count
-		r, err := s.Run(ctx)
+		r, err := s.Run(ctx.withRetry(count))
 		if r != nil {
 			return r, err
 		}
@@ -87,4 +86,16 @@ type StepContext struct {
 	NumRetry int
 
 	opts []RunOption
+}
+
+func (ctx StepContext) addOpts(opts []RunOption, shouldCopy bool) StepContext {
+	r := make([]RunOption, len(ctx.opts), len(ctx.opts)+len(opts))
+	copy(r, ctx.opts)
+	ctx.opts = append(r, opts...)
+	return ctx
+}
+
+func (ctx StepContext) withRetry(n int) StepContext {
+	ctx.NumRetry = n
+	return ctx
 }

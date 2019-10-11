@@ -16,7 +16,7 @@ func (sm StateMachine) Run(ctx StepContext) (Result, error) {
 		}
 		behavior := sm.States[state]
 
-		r, err := runStep(ctx, behavior.Processor, append(ctx.opts, behavior.RunOptions...)...)
+		r, err := runStep(ctx.addOpts(behavior.RunOptions, false), behavior.Processor)
 		next := behavior.Transition.Transit(r, err)
 		switch next {
 		case End:
@@ -40,14 +40,17 @@ type Behavior struct {
 	RunOptions []RunOption
 }
 
-type Transition interface {
-	Transit(Result, error) State
+type Transition map[Matcher]State
+
+func (t Transition) Transit(r Result, err error) State {
+	for m, s := range t {
+		if m.Match(r, err) {
+			return s
+		}
+	}
+	return nil
 }
 
-type ResultMap map[Result]State
-
-var _ Transition = ResultMap{}
-
-func (tm ResultMap) Transit(r Result, _ error) State {
-	return tm[r]
+type Matcher interface {
+	Match(Result, error) bool
 }
