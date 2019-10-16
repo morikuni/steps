@@ -8,11 +8,11 @@ type Parallel struct {
 	wg sync.WaitGroup
 }
 
-func (p *Parallel) Run(ctx StepContext, step Step) *Future {
+func (p *Parallel) Run(ctx StepContext, step Step, opts ...RunOption) *Future {
 	var f Future
 	p.wg.Add(1)
 	go func() {
-		r, err := runStep(ctx.addOpts(nil, true), step)
+		r, err := RunStep(ctx, step, opts...)
 		f.Result = r
 		f.Error = err
 	}()

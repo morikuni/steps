@@ -45,22 +45,24 @@ var _ State = StateName(0)
 
 func (StateName) ComparableState() {}
 
-func RunStep(ctx context.Context, s Step, opts ...RunOption) (Result, error) {
-	return runStep(StepContext{Context: ctx, opts: opts}, s)
-}
-
-func runStep(ctx StepContext, s Step) (Result, error) {
+func RunStep(ctx StepContext, s Step, opts ...RunOption) (Result, error) {
 	var (
 		count  int
 		config = defaultConfig
 	)
+
+	// copy slice to prevent race condition when opts exists
+	if len(opts) > 0 {
+		l := len(ctx.opts)
+		ctx.opts = append(ctx.opts[0:l:l], opts...)
+	}
 
 	for _, o := range ctx.opts {
 		o(&config)
 	}
 
 	for {
-		r, err := s.Run(ctx.withRetry(count))
+		r, err := s.Run(ctx)
 		if r != nil {
 			return r, err
 		}
@@ -86,13 +88,6 @@ type StepContext struct {
 	NumRetry int
 
 	opts []RunOption
-}
-
-func (ctx StepContext) addOpts(opts []RunOption, shouldCopy bool) StepContext {
-	r := make([]RunOption, len(ctx.opts), len(ctx.opts)+len(opts))
-	copy(r, ctx.opts)
-	ctx.opts = append(r, opts...)
-	return ctx
 }
 
 func (ctx StepContext) withRetry(n int) StepContext {

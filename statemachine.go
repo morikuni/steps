@@ -16,7 +16,7 @@ func (sm StateMachine) Run(ctx StepContext) (Result, error) {
 		}
 		behavior := sm.States[state]
 
-		r, err := runStep(ctx.addOpts(behavior.RunOptions, false), behavior.Processor)
+		r, err := RunStep(ctx, behavior.Processor, behavior.RunOptions...)
 		next := behavior.Transition.Transit(r, err)
 		switch next {
 		case End:
