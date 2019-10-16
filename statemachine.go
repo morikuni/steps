@@ -50,7 +50,3 @@ func (t Transition) Transit(r Result, err error) State {
 	}
 	return nil
 }
-
-type Matcher interface {
-	Match(Result, error) bool
-}
