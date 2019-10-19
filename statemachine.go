@@ -1,11 +1,15 @@
 package steps
 
+import (
+	"context"
+)
+
 type StateMachine struct {
 	InitialState State
 	States       map[State]Behavior
 }
 
-func (sm StateMachine) Run(ctx StepContext) (Result, error) {
+func (sm StateMachine) Run(ctx context.Context) (Result, error) {
 	state := sm.InitialState
 
 	for {

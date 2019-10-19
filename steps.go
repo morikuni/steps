@@ -20,14 +20,14 @@ type Result interface {
 // Therefore, the processor which is not idempotent must return Result to
 // prevent retry.
 type Step interface {
-	Run(ctx StepContext) (Result, error)
+	Run(ctx context.Context) (Result, error)
 }
 
-type StepFunc func(ctx StepContext) (Result, error)
+type StepFunc func(ctx context.Context) (Result, error)
 
 var _ Step = StepFunc(nil)
 
-func (f StepFunc) Run(ctx StepContext) (Result, error) {
+func (f StepFunc) Run(ctx context.Context) (Result, error) {
 	return f(ctx)
 }
 
@@ -45,19 +45,15 @@ var _ State = StateName(0)
 
 func (StateName) ComparableState() {}
 
-func RunStep(ctx StepContext, s Step, opts ...RunOption) (Result, error) {
+func RunStep(ctx context.Context, s Step, opts ...RunOption) (Result, error) {
 	var (
 		count  int
 		config = defaultConfig
 	)
 
-	// copy slice to prevent race condition when opts exists
-	if len(opts) > 0 {
-		l := len(ctx.opts)
-		ctx.opts = append(ctx.opts[0:l:l], opts...)
-	}
+	ctx, opts = appendOptions(ctx, opts)
 
-	for _, o := range ctx.opts {
+	for _, o := range opts {
 		o(&config)
 	}
 
@@ -80,17 +76,4 @@ func RunStep(ctx StepContext, s Step, opts ...RunOption) (Result, error) {
 		}
 		count++
 	}
-}
-
-type StepContext struct {
-	context.Context
-
-	NumRetry int
-
-	opts []RunOption
-}
-
-func (ctx StepContext) withRetry(n int) StepContext {
-	ctx.NumRetry = n
-	return ctx
 }

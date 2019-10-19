@@ -1,6 +1,7 @@
 package steps
 
 import (
+	"context"
 	"sync"
 )
 
@@ -8,7 +9,7 @@ type Parallel struct {
 	wg sync.WaitGroup
 }
 
-func (p *Parallel) Run(ctx StepContext, step Step, opts ...RunOption) *Future {
+func (p *Parallel) Run(ctx context.Context, step Step, opts ...RunOption) *Future {
 	var f Future
 	p.wg.Add(1)
 	go func() {
