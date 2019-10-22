@@ -1,35 +1,37 @@
-package steps
+package parallel
 
 import (
 	"context"
 	"sync"
+
+	"github.com/morikuni/steps"
 )
 
-type Parallel struct {
+type Group struct {
 	wg sync.WaitGroup
 }
 
-func (p *Parallel) Run(ctx context.Context, step Step, opts ...RunOption) *Future {
+func (g *Group) Run(ctx context.Context, step steps.Step, opts ...steps.RunOption) *Future {
 	var f Future
-	p.wg.Add(1)
+	g.wg.Add(1)
 	go func() {
-		r, err := RunStep(ctx, step, opts...)
+		r, err := steps.RunStep(ctx, step, opts...)
 		f.Result = r
 		f.Error = err
 	}()
 	return &f
 }
 
-func (p *Parallel) Wait() {
-	p.wg.Wait()
+func (g *Group) Wait() {
+	g.wg.Wait()
 }
 
 type Future struct {
-	Result Result
+	Result steps.Result
 	Error  error
 }
 
-func (f *Future) Match(m Matcher) bool {
+func (f *Future) Match(m steps.Matcher) bool {
 	return m.Match(f.Result, f.Error)
 }
 
