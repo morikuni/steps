@@ -40,13 +40,17 @@ func (sm StateMachine) Run(ctx context.Context) (Result, error) {
 // Behavior represents a behavior of a state.
 type Behavior struct {
 	Processor  Step
-	Transition Transition
+	Transition TransitionMap
 	RunOptions []RunOption
 }
 
-type Transition map[Matcher]State
+type Transition interface {
+	Transit(Result, error) State
+}
 
-func (t Transition) Transit(r Result, err error) State {
+type TransitionMap map[Matcher]State
+
+func (t TransitionMap) Transit(r Result, err error) State {
 	for m, s := range t {
 		if m.Match(r, err) {
 			return s
