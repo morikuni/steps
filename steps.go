@@ -31,20 +31,6 @@ func (f StepFunc) Run(ctx context.Context) (Result, error) {
 	return f(ctx)
 }
 
-// State is an identifier of a state.
-// Its implementation must be comparable by == operator.
-//
-// ComparableState is just a marker of the interface.
-type State interface {
-	ComparableState()
-}
-
-type StateName string
-
-var _ State = StateName(0)
-
-func (StateName) ComparableState() {}
-
 func RunStep(ctx context.Context, s Step, opts ...RunOption) (Result, error) {
 	var (
 		count  int

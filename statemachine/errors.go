@@ -1,10 +1,14 @@
-package steps
+package statemachine
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/morikuni/steps"
+)
 
 type TransitionError struct {
 	State  State
-	Result Result
+	Result steps.Result
 	Err    error
 }
 
