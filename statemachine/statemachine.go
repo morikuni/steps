@@ -14,11 +14,11 @@ type State interface {
 	ComparableState()
 }
 
-type StateName string
+type StateID int
 
-var _ State = StateName(0)
+var _ State = StateID(0)
 
-func (StateName) ComparableState() {}
+func (StateID) ComparableState() {}
 
 type StateMachine struct {
 	InitialState State
@@ -37,6 +37,11 @@ func (sm StateMachine) Run(ctx context.Context) (steps.Result, error) {
 		behavior := sm.States[state]
 
 		r, err := steps.Run(ctx, behavior.Step, behavior.RunOptions...)
+
+		if behavior.Transition == nil {
+			return r, err
+		}
+
 		next := behavior.Transition.Transit(r, err)
 		switch next {
 		case End:
