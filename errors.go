@@ -12,6 +12,10 @@ func (te *TransitionError) Error() string {
 	return fmt.Sprintf("transition error: state=%v result_id=%v error=%v", te.State, te.Result, te.Err)
 }
 
+func (te *TransitionError) Unwrap() error {
+	return te.Err
+}
+
 type UndefinedStateError struct {
 	State State
 }
