@@ -11,11 +11,11 @@ type Group struct {
 	wg sync.WaitGroup
 }
 
-func (g *Group) Run(ctx context.Context, step steps.Step, opts ...steps.RunOption) *Future {
+func (g *Group) Run(ctx context.Context, step steps.Step, opts ...steps.Option) *Future {
 	var f Future
 	g.wg.Add(1)
 	go func() {
-		r, err := steps.RunStep(ctx, step, opts...)
+		r, err := steps.Run(ctx, step, opts...)
 		f.Result = r
 		f.Error = err
 	}()

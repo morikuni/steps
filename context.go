@@ -10,11 +10,11 @@ const (
 	optionKey key = iota
 )
 
-func getOptions(ctx context.Context) []RunOption {
-	return ctx.Value(optionKey).([]RunOption)
+func getOptions(ctx context.Context) []Option {
+	return ctx.Value(optionKey).([]Option)
 }
 
-func appendOptions(ctx context.Context, opts []RunOption) (context.Context, []RunOption) {
+func appendOptions(ctx context.Context, opts []Option) (context.Context, []Option) {
 	if len(opts) == 0 {
 		return ctx, nil
 	}

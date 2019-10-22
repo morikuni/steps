@@ -4,13 +4,13 @@ import (
 	"time"
 )
 
-type RunOption func(*runConfig)
+type Option func(*config)
 
-type runConfig struct {
+type config struct {
 	backoff Backoff
 }
 
-var defaultConfig = runConfig{
+var defaultConfig = config{
 	&ExponentialBackoff{
 		Initial:     10 * time.Millisecond,
 		Multiplier:  2,

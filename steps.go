@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -31,16 +32,28 @@ func (f StepFunc) Run(ctx context.Context) (Result, error) {
 	return f(ctx)
 }
 
-func RunStep(ctx context.Context, s Step, opts ...RunOption) (Result, error) {
+func Run(ctx context.Context, s Step, opts ...Option) (rResult Result, rErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			var err error
+			if re, ok := r.(error); ok {
+				err = re
+			} else {
+				err = fmt.Errorf("recover: %v", r)
+			}
+			rResult, rErr = Fail, &PanicError{err}
+		}
+	}()
+
 	var (
-		count  int
-		config = defaultConfig
+		count int
+		conf  = defaultConfig
 	)
 
 	ctx, opts = appendOptions(ctx, opts)
 
 	for _, o := range opts {
-		o(&config)
+		o(&conf)
 	}
 
 	for {
@@ -49,7 +62,7 @@ func RunStep(ctx context.Context, s Step, opts ...RunOption) (Result, error) {
 			return r, err
 		}
 
-		d, ok := config.backoff.Interval(err, count)
+		d, ok := conf.backoff.Interval(err, count)
 		if !ok {
 			return Fail, err
 		}

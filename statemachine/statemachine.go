@@ -36,7 +36,7 @@ func (sm StateMachine) Run(ctx context.Context) (steps.Result, error) {
 		}
 		behavior := sm.States[state]
 
-		r, err := steps.RunStep(ctx, behavior.Processor, behavior.RunOptions...)
+		r, err := steps.Run(ctx, behavior.Step, behavior.RunOptions...)
 		next := behavior.Transition.Transit(r, err)
 		switch next {
 		case End:
@@ -55,7 +55,7 @@ func (sm StateMachine) Run(ctx context.Context) (steps.Result, error) {
 
 // Behavior represents a behavior of a state.
 type Behavior struct {
-	Processor  steps.Step
-	Transition TransitionMap
-	RunOptions []steps.RunOption
+	Step       steps.Step
+	Transition Transition
+	RunOptions []steps.Option
 }
