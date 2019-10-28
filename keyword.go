@@ -17,3 +17,11 @@ func (reservedResult) ComparableResult() {}
 func (rr reservedResult) Match(r Result, _ error) bool {
 	return rr == r
 }
+
+const Any = any(0)
+
+type any int
+
+func (any) Match(Result, error) bool {
+	return true
+}

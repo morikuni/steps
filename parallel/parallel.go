@@ -11,35 +11,53 @@ type Group struct {
 	wg sync.WaitGroup
 }
 
-func (g *Group) Run(ctx context.Context, step steps.Step, opts ...steps.Option) *Future {
-	var f Future
+type Option func(*config)
+
+func WithStepsOption(opts ...steps.Option) Option {
+	return func(conf *config) {
+		conf.stepsOption = opts
+	}
+}
+
+func Wait(f *Future, m steps.Matcher) Option {
+	return func(conf *config) {
+		if conf.wait == nil {
+			conf.wait = make(map[*Future]steps.Matcher)
+		}
+		conf.wait[f] = m
+	}
+}
+
+type config struct {
+	stepsOption []steps.Option
+	wait        map[*Future]steps.Matcher
+}
+
+func (g *Group) Run(ctx context.Context, step steps.Step, opts ...Option) *Future {
+	var conf config
+	for _, o := range opts {
+		o(&conf)
+	}
+
+	f := NewFuture()
 	g.wg.Add(1)
 	go func() {
-		r, err := steps.Run(ctx, step, opts...)
-		f.Result = r
-		f.Error = err
+		defer g.wg.Done()
+
+		for f, m := range conf.wait {
+			r, err := f.Wait(ctx)
+			if !m.Match(r, err) {
+				f.Report(steps.Fail, &WaitError{r, err})
+				return
+			}
+		}
+
+		r, err := steps.Run(ctx, step, conf.stepsOption...)
+		f.Report(r, err)
 	}()
-	return &f
+	return f
 }
 
 func (g *Group) Wait() {
 	g.wg.Wait()
-}
-
-type Future struct {
-	Result steps.Result
-	Error  error
-}
-
-func (f *Future) Match(m steps.Matcher) bool {
-	return m.Match(f.Result, f.Error)
-}
-
-func FirstError(fs ...*Future) error {
-	for _, f := range fs {
-		if f.Error != nil {
-			return f.Error
-		}
-	}
-	return nil
 }
