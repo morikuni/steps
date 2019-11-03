@@ -69,3 +69,16 @@ func (f *Future) Wait(ctx context.Context) (steps.Result, error) {
 		return f.result, f.error
 	}
 }
+
+func (f *Future) Match(m steps.Matcher) bool {
+	done := make(chan struct{})
+	f.On(steps.Any, func(r steps.Result, err error) {
+		close(done)
+	})
+	select {
+	case <-done:
+		return m.Match(f.result, f.error)
+	default:
+		return false
+	}
+}
