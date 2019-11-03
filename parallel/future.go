@@ -2,6 +2,7 @@ package parallel
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/morikuni/steps"
@@ -12,9 +13,14 @@ type Future struct {
 	result steps.Result
 	error  error
 
-	handlers map[steps.Matcher]func(steps.Result, error)
-	done     bool
-	mu       sync.Mutex
+	callbacks []callback
+	done      bool
+	mu        sync.Mutex
+}
+
+type callback struct {
+	m  steps.Matcher
+	fn func(steps.Result, error)
 }
 
 func NewFuture() *Future {
@@ -33,9 +39,9 @@ func (f *Future) Report(r steps.Result, err error) {
 	f.error = err
 	f.done = true
 
-	for m, fn := range f.handlers {
-		if m.Match(f.result, f.error) {
-			fn(f.result, f.error)
+	for _, cb := range f.callbacks {
+		if cb.m.Match(f.result, f.error) {
+			cb.fn(f.result, f.error)
 		}
 	}
 }
@@ -51,10 +57,7 @@ func (f *Future) On(m steps.Matcher, fn func(r steps.Result, err error)) {
 		return
 	}
 
-	if f.handlers == nil {
-		f.handlers = make(map[steps.Matcher]func(steps.Result, error))
-	}
-	f.handlers[m] = fn
+	f.callbacks = append(f.callbacks, callback{m, fn})
 }
 
 func (f *Future) Wait(ctx context.Context) (steps.Result, error) {
@@ -81,4 +84,8 @@ func (f *Future) Match(m steps.Matcher) bool {
 	default:
 		return false
 	}
+}
+
+func (f *Future) String() string {
+	return fmt.Sprintf("result=%v error=%v", f.result, f.error)
 }
