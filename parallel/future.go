@@ -34,7 +34,7 @@ func (f *Future) Report(r steps.Result, err error) {
 	f.done = true
 
 	for m, fn := range f.handlers {
-		if f.Match(m) {
+		if m.Match(f.result, f.error) {
 			fn(f.result, f.error)
 		}
 	}
@@ -43,8 +43,11 @@ func (f *Future) Report(r steps.Result, err error) {
 func (f *Future) On(m steps.Matcher, fn func(r steps.Result, err error)) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.done && f.Match(m) {
-		fn(f.result, f.error)
+
+	if f.done {
+		if m.Match(f.result, f.error) {
+			fn(f.result, f.error)
+		}
 		return
 	}
 
@@ -65,17 +68,4 @@ func (f *Future) Wait(ctx context.Context) (steps.Result, error) {
 	case <-done:
 		return f.result, f.error
 	}
-}
-
-func (f *Future) Match(m steps.Matcher) bool {
-	return m.Match(f.result, f.error)
-}
-
-func FirstError(fs ...*Future) error {
-	for _, f := range fs {
-		if f.error != nil {
-			return f.error
-		}
-	}
-	return nil
 }
