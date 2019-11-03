@@ -19,7 +19,7 @@ func WithStepsOption(opts ...steps.Option) Option {
 	}
 }
 
-func Wait(f *Future, m steps.Matcher) Option {
+func After(f *Future, m steps.Matcher) Option {
 	return func(conf *config) {
 		if conf.wait == nil {
 			conf.wait = make(map[*Future]steps.Matcher)
@@ -44,8 +44,8 @@ func (g *Group) Run(ctx context.Context, step steps.Step, opts ...Option) *Futur
 	go func() {
 		defer g.wg.Done()
 
-		for f, m := range conf.wait {
-			r, err := f.Wait(ctx)
+		for fw, m := range conf.wait {
+			r, err := fw.Wait(ctx)
 			if !m.Match(r, err) {
 				f.Report(steps.Fail, &WaitError{r, err})
 				return
