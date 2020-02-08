@@ -2,7 +2,6 @@ package parallel
 
 import (
 	"context"
-	"sync"
 
 	"github.com/morikuni/steps"
 )
@@ -16,31 +15,31 @@ type failFast struct {
 	opts []Option
 }
 
-func (ff *failFast) Run(ctx context.Context) (steps.Result, error) {
+func (ff *failFast) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	var (
-		g       Group
-		once    sync.Once
-		retErr  error
-		futures = make([]*Future, 0, len(ff.ss))
-	)
+	var g Group
 	for _, s := range ff.ss {
-		f := g.Run(ctx, s)
-		f.On(steps.Fail, func(r steps.Result, err error) {
-			once.Do(func() {
+		s := s
+		g.Run(ctx, steps.StepFunc(func(ctx context.Context) error {
+			err := s.Run(ctx)
+			if err != nil {
+				// Call fail before returning error because once cancel is called
+				// g.Wait() may be a context.Canceled from other goroutines
+				// instead of this err depends on goroutine scheduling.
+				g.Fail(err)
 				cancel()
-				retErr = err
-			})
-		})
-		futures = append(futures, f)
-	}
-	g.Wait()
-
-	if retErr != nil {
-		return steps.Fail, retErr
+				return err
+			}
+			return nil
+		}))
 	}
 
-	return steps.Success, nil
+	err := g.Wait()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

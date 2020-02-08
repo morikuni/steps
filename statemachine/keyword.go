@@ -6,6 +6,6 @@ const (
 
 type reservedState string
 
-var _ State = reservedState(0)
-
-func (reservedState) ComparableState() {}
+func (s reservedState) StateID() string {
+	return string(s)
+}

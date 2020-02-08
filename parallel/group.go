@@ -8,56 +8,43 @@ import (
 )
 
 type Group struct {
-	wg sync.WaitGroup
+	wg   sync.WaitGroup
+	once sync.Once
+	err  error
 }
 
 type Option func(*config)
 
-func WithStepsOption(opts ...steps.Option) Option {
-	return func(conf *config) {
-		conf.stepsOption = opts
-	}
-}
+type config struct{}
 
-func After(f *Future, m steps.Matcher) Option {
-	return func(conf *config) {
-		if conf.wait == nil {
-			conf.wait = make(map[*Future]steps.Matcher)
-		}
-		conf.wait[f] = m
-	}
-}
-
-type config struct {
-	stepsOption []steps.Option
-	wait        map[*Future]steps.Matcher
-}
-
-func (g *Group) Run(ctx context.Context, step steps.Step, opts ...Option) *Future {
+func (g *Group) Run(ctx context.Context, step steps.Step, opts ...Option) {
 	var conf config
 	for _, o := range opts {
 		o(&conf)
 	}
 
-	f := NewFuture()
 	g.wg.Add(1)
 	go func() {
 		defer g.wg.Done()
 
-		for fw, m := range conf.wait {
-			r, err := fw.Wait(ctx)
-			if !m.Match(r, err) {
-				f.Report(steps.Fail, &WaitError{r, err})
-				return
-			}
+		err := step.Run(ctx)
+		if err != nil {
+			g.Fail(err)
 		}
-
-		r, err := steps.Run(ctx, step, conf.stepsOption...)
-		f.Report(r, err)
 	}()
-	return f
 }
 
-func (g *Group) Wait() {
+func (g *Group) Fail(err error) {
+	if err != nil {
+		panic(err)
+	}
+
+	g.once.Do(func() {
+		g.err = err
+	})
+}
+
+func (g *Group) Wait() error {
 	g.wg.Wait()
+	return g.err
 }

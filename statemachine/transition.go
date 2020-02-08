@@ -5,14 +5,14 @@ import (
 )
 
 type Transition interface {
-	Transit(steps.Result, error) State
+	Transit(error) State
 }
 
 type TransitionMap map[steps.Matcher]State
 
-func (t TransitionMap) Transit(r steps.Result, err error) State {
+func (t TransitionMap) Transit(err error) State {
 	for m, s := range t {
-		if m.Match(r, err) {
+		if m.Match(err) {
 			return s
 		}
 	}

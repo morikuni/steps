@@ -2,56 +2,54 @@ package statemachine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/morikuni/steps"
 )
 
 // State is an identifier of a state.
 // Its implementation must be comparable by == operator.
-//
-// ComparableState is just a marker of the interface.
 type State interface {
-	ComparableState()
+	StateID() string
 }
 
-type StateID int
+type StringState string
 
-var _ State = StateID(0)
-
-func (StateID) ComparableState() {}
+func (s StringState) StateID() string {
+	return string(s)
+}
 
 type StateMachine struct {
 	InitialState State
 	States       map[State]Behavior
 }
 
-func (sm StateMachine) Run(ctx context.Context) (steps.Result, error) {
+func (sm StateMachine) Run(ctx context.Context) error {
 	state := sm.InitialState
 
 	for {
 		select {
 		case <-ctx.Done():
-			return steps.Fail, ctx.Err()
+			return ctx.Err()
 		default:
 		}
 		behavior := sm.States[state]
 
-		r, err := steps.Run(ctx, behavior.Step, behavior.RunOptions...)
-
+		err := behavior.Step.Run(ctx)
 		if behavior.Transition == nil {
-			return r, err
+			return err
 		}
 
-		next := behavior.Transition.Transit(r, err)
+		next := behavior.Transition.Transit(err)
 		switch next {
 		case End:
-			return r, err
+			return err
 		case nil:
-			return steps.Fail, &TransitionError{state, r, err}
+			return fmt.Errorf("transition error: state=%v error=%w", state, err)
 		}
 
 		if _, ok := sm.States[next]; !ok {
-			return steps.Fail, &UndefinedStateError{state}
+			return fmt.Errorf("undefined state: state=%v", state)
 		}
 
 		state = next
@@ -62,5 +60,4 @@ func (sm StateMachine) Run(ctx context.Context) (steps.Result, error) {
 type Behavior struct {
 	Step       steps.Step
 	Transition Transition
-	RunOptions []steps.Option
 }
